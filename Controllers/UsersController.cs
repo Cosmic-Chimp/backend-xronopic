@@ -1,7 +1,11 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Xronopic.Api.Data;
-using Xronopic.Api.Models;
+using Microsoft.IdentityModel.Tokens;
+using System;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Xronopic.Api.Controllers
 {
@@ -9,35 +13,75 @@ namespace Xronopic.Api.Controllers
   [Route("api/[controller]")]
   public class UsersController : ControllerBase
   {
-    private readonly AppDbContext _context;
+    private readonly UserManager<IdentityUser> _userManager;
+    private readonly IConfiguration _configuration;
 
-    public UsersController(AppDbContext context)
+    public UsersController(UserManager<IdentityUser> userManager, IConfiguration configuration)
     {
-      _context = context;
+      _userManager = userManager;
+      _configuration = configuration;
     }
 
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<User>>> GetUsers()
+    [HttpPost("signup")]
+    public async Task<IActionResult> Signup([FromBody] SignupRequest model)
     {
-      var users = await _context.Users.ToListAsync();
-      return Ok(users);
+      var user = new IdentityUser { UserName = model.Username, Email = model.Email };
+      var result = await _userManager.CreateAsync(user, model.Password);
+
+      if (result.Succeeded)
+      {
+        return Ok(new { Message = "User created successfully" });
+      }
+
+      return BadRequest(result.Errors);
     }
 
-    [HttpGet("{id}")]
-    public async Task<ActionResult<User>> GetUser(int id)
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginRequest model)
     {
-      var user = await _context.Users.FindAsync(id);
-      if (user == null) return NotFound();
-      return Ok(user);
+      var user = await _userManager.FindByEmailAsync(model.Email);
+
+      if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
+      {
+        var token = GenerateJwtToken(user);
+        return Ok(new { Token = token });
+      }
+
+      return Unauthorized();
     }
 
-    [HttpPost]
-    public async Task<ActionResult<User>> CreateUser([FromBody] User user)
+    private string GenerateJwtToken(IdentityUser user)
     {
-      // TODO: hash pass correctly not like this, this is example
-      _context.Users.Add(user);
-      await _context.SaveChangesAsync();
-      return CreatedAtAction(nameof(GetUser), new { id = user.Id }, user);
+      var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+      var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+      var claims = new[]
+      {
+                new Claim(JwtRegisteredClaimNames.Sub, user.Email),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
+
+      var token = new JwtSecurityToken(
+          issuer: _configuration["Jwt:Issuer"],
+          audience: _configuration["Jwt:Audience"],
+          claims: claims,
+          expires: DateTime.Now.AddMinutes(120),
+          signingCredentials: credentials);
+
+      return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    public class LoginRequest
+    {
+      public string Email { get; set; } = ""; //added default value
+      public string Password { get; set; } = ""; //added default value
+    }
+
+    public class SignupRequest
+    {
+      public string Username { get; set; } = ""; //added default value
+      public string Email { get; set; } = ""; //added default value
+      public string Password { get; set; } = ""; //added default value
     }
   }
 }
