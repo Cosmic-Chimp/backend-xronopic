@@ -52,14 +52,16 @@ namespace Xronopic.Api.Controllers
 
     private string GenerateJwtToken(IdentityUser user)
     {
+      Console.WriteLine($"User ID: {user.Id}");
       var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
       var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
       var claims = new[]
       {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            };
+        new Claim(ClaimTypes.NameIdentifier, user.Id), // Add the user ID claim
+        new Claim(JwtRegisteredClaimNames.Sub, user.Email),
+        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+    };
 
       var token = new JwtSecurityToken(
           issuer: _configuration["Jwt:Issuer"],

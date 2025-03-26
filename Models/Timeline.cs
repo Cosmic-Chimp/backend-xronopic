@@ -17,7 +17,7 @@ namespace Xronopic.Api.Models
     public List<Event> Events { get; set; } = new();
 
     // Foreign key to the user who owns this timeline
-    public int UserId { get; set; }
+    public string UserId { get; set; } = "";
 
     // Navigation property
     public User? User { get; set; }

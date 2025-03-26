@@ -9,7 +9,7 @@ namespace Xronopic.Api.Controllers
 {
   [ApiController]
   [Route("api/[controller]")]
-  [Authorize] // Added: Requires authentication
+  [Authorize]
   public class TimelinesController : ControllerBase
   {
     private readonly AppDbContext _context;
@@ -42,6 +42,8 @@ namespace Xronopic.Api.Controllers
     [HttpPost]
     public async Task<ActionResult<Timeline>> CreateTimeline([FromBody] Timeline timeline)
     {
+      Console.WriteLine("CreateTimeline endpoint hit.");
+
       if (timeline == null)
       {
         return BadRequest("Invalid timeline data.");
@@ -49,10 +51,15 @@ namespace Xronopic.Api.Controllers
 
       // Get the user's ID from the JWT claims
       var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-      if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+      if (userIdClaim == null)
       {
+        Console.WriteLine("ClaimTypes.NameIdentifier claim is null");
         return Unauthorized("User ID not found in JWT.");
       }
+
+      string userId = userIdClaim.Value; // Change type to string and remove int.TryParse
+
+      Console.WriteLine($"User ID from JWT: {userId}");
 
       timeline.UserId = userId; // Set the user ID from the JWT.
 
@@ -75,16 +82,20 @@ namespace Xronopic.Api.Controllers
     }
 
     //TODO:! add put n delete later
-
     [HttpGet("me")]
     public async Task<ActionResult<IEnumerable<Timeline>>> GetTimelineByUserId()
     {
       // Get the user's ID from the JWT claims
       var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-      if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+      if (userIdClaim == null)
       {
+        Console.WriteLine("ClaimTypes.NameIdentifier claim is null");
         return Unauthorized("User ID not found in JWT.");
       }
+
+      string userId = userIdClaim.Value; // changed type to string and removed int.TryParse
+
+      Console.WriteLine($"User ID from JWT: {userId}");
 
       var timelines = await _context.Timelines
           .Include(t => t.Events)
