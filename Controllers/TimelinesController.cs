@@ -39,19 +39,32 @@ namespace Xronopic.Api.Controllers
     [HttpPost]
     public async Task<ActionResult<Timeline>> CreateTimeline([FromBody] Timeline timeline)
     {
+      if (timeline == null)
+      {
+        return BadRequest("Invalid timeline data.");
+      }
+
+      // Convert all event dates to UTC
+      if (timeline.Events != null)
+      {
+        foreach (var evt in timeline.Events)
+        {
+          if (evt.EventDate.HasValue)
+          {
+            evt.EventDate = evt.EventDate.Value.ToUniversalTime();
+          }
+        }
+      }
       _context.Timelines.Add(timeline);
       await _context.SaveChangesAsync();
       return CreatedAtAction(nameof(GetTimeline), new { id = timeline.Id }, timeline);
     }
 
-    // Put and Delete endpoints omitted for brevity...
     //TODO:! add put n delete later 
 
     [HttpGet("me")]
     public async Task<ActionResult<IEnumerable<Timeline>>> GetTimelineByUserId()
     {
-      // Assume you have some way to identify the current user,
-      // for example using a token or HttpContext user claims.
       var userId = 1; //TODO Replace with logic to get the real user ID
 
       var timelines = await _context.Timelines

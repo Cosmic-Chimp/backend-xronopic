@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System;
+using System.Text.Json.Serialization;
 
 namespace Xronopic.Api.Models
 {
@@ -13,12 +14,13 @@ namespace Xronopic.Api.Models
 
     public string EventDescription { get; set; } = string.Empty;
 
-    public DateTime? EventDate { get; set; }
-
+    public DateTimeOffset? EventDate { get; set; } = DateTimeOffset.UtcNow;
     public string? ImgUrl { get; set; }
 
     // Foreign Key
     public int TimelineId { get; set; }
+
+    [JsonIgnore]
     public Timeline? Timeline { get; set; }
   }
 }
