@@ -1,0 +1,25 @@
+# Build Folders
+bin/
+obj/
+
+# Visual Studio
+.vs/
+.vscode/
+
+# Ignore appsettings with sensitive data
+**/appsettings*.json
+!**/appsettings.json.example
+
+# User secrets
+*.user-secrets.json
+
+# User-specific files
+*.user
+*.suo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Resharper / Rider
+*.DotSettings.user
