@@ -1,44 +1,32 @@
 using Microsoft.EntityFrameworkCore;
-using Npgsql.EntityFrameworkCore.PostgreSQL;
 using Xronopic.Api.Data;
 
 var builder = WebApplication.CreateBuilder(args);
-// 1. Add controller services
+
+// Add services to the container.
 builder.Services.AddControllers();
-
-// Add configuration sources
-builder.Configuration
-    .SetBasePath(builder.Environment.ContentRootPath)
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
-    .AddUserSecrets<Program>(optional: true)
-    .AddEnvironmentVariables();
-
-// Add services to the container
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Configure DbContext with connection string
+// Add DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Add CORS policy
+builder.Services.AddCors(options =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-    // Add null or empty check
-    if (string.IsNullOrEmpty(connectionString))
+    options.AddPolicy("AllowReactApp", builder =>
     {
-        throw new InvalidOperationException(
-            "Database connection string 'DefaultConnection' is not configured. " +
-            "Please set it in appsettings.json, user secrets, or environment variables.");
-    }
-
-    options.UseNpgsql(connectionString);
+        builder.WithOrigins("http://localhost:5173")
+               .AllowAnyHeader()
+               .AllowAnyMethod();
+    });
 });
 
 var app = builder.Build();
-// 2. Map controllers
-app.MapControllers();
 
-// Configure the HTTP request pipeline
+// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -46,4 +34,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Use CORS policy
+app.UseCors("AllowReactApp");
+
+app.UseAuthorization();
+
+app.MapControllers();
+
 app.Run();
